@@ -1,0 +1,48 @@
+- hosts: localhost
+  vars:
+    app_name: TestApp
+    aws_region: eu-west-1
+    ssh_key_name: my_key
+    ssh_key_value: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCod03I5wxFGU5OW7jYBcyGIb70NOPuYRR7N
+      ejVtBXI+C0cVa9hG21PRj424ZwknU3MPJe1DjyT/a1S85oh7USr/FY1RI6RqdEKPYuhhc0pqP
+      QnWFsDzQ1gq9odvcUDUGVeSFXtA4WlHhZZIPKoPgKU0cx0Bjq61aUVjzEERlTthgN9+QBMt+M
+      7GCoKPZx90vA27z6CrGSfoe6EVqDmK1AcqCBLN6huyirI4jAZxS8kbTZ+6LyzEzA8Xx6fklIl
+      DR3vdLZ49D6Phc/U3RFJO4ookV4UwJZ6mPHIbEz1Go3Mlu/+hiG8Cn4ZRk6Uv3Pcc2qmlg0Lo
+      /lUdlkgOc9MVEl9 m@debi
+  tasks:
+    - name: create ssh key
+      ec2_key:
+        name: "{{ ssh_key_name }}"
+        key_material: "{{ ssh_key_value }}"
+        force: true
+        state: present
+        region: "{{ aws_region }}"
+
+    - name: create a cloudformation stack for app
+      cloudformation:
+        stack_name: "{{app_name}}"
+        state: "present"
+        region: "{{ aws_region }}"
+        template: "files/app.yaml"
+        template_parameters:
+          KeyPairName: "{{ ssh_key_name }}"
+          InstanceCount: 3
+      register: stack
+
+    - debug:
+        var: stack.stack_outputs.ELBURL
+
+    - name: create code deploy configuration
+      cloudformation:
+        stack_name: "{{app_name}}Pipeline"
+        state: "present"
+        region: "{{ aws_region }}"
+        template: "files/codedeploy.yaml"
+        template_parameters:
+          AutoScalingGroupName: "{{ stack.stack_outputs.AutoScalingGroupName}}"
+          ELBTargetGroupName: "{{ stack.stack_outputs.ELBTargetGroupName}}"
+      register: codedeploy
+
+    - debug:
+        var: codedeploy.stack_outputs

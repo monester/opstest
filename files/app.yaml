@@ -1,0 +1,265 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  GitHubRepo:
+    Type: String
+    Default: monester/opstest
+  KeyPairName:
+    Type: String
+    Default: 'my_key'
+  InstanceCount:
+    Type: Number
+    Default: '1'
+Mappings:
+  RegionOS2AMI:
+    eu-west-1:
+      Linux: ami-f90a4880
+Resources:
+  WaitHandle:
+    Type: 'AWS::CloudFormation::WaitConditionHandle'
+  WaitCondition:
+    Type: 'AWS::CloudFormation::WaitCondition'
+    Properties:
+      Count: !Ref InstanceCount
+      Handle: !Ref WaitHandle
+      Timeout: '1800'
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+  InstanceRolePolicies:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: InstanceRole
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'autoscaling:Describe*'
+              - 'cloudformation:Describe*'
+              - 'cloudformation:GetTemplate'
+              - 's3:Get*'
+            Resource: '*'
+      Roles:
+        - !Ref InstanceRole
+  InstanceRoleInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref InstanceRole
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 172.31.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.31.0.0/24
+      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'a' ] ]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.31.1.0/24
+      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'b' ] ]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.31.2.0/24
+      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'c' ] ]
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociationA:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+  PublicSubnetRouteTableAssociationB:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+  PublicSubnetRouteTableAssociationC:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetC
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Ref 'AWS::StackName'
+      GroupDescription: 'Open tcp/22 tcp/80 to world. Open tcp/8080 to ELB.'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: '172.31.0.0/16'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  TestAppLaunchConfiguration:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
+      ImageId: !FindInMap
+        - RegionOS2AMI
+        - !Ref 'AWS::Region'
+        - Linux
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairName
+      SecurityGroups:
+        - !Ref SecurityGroup
+      UserData: !Base64
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -ex
+            - |
+              apt-get update
+            - |
+              apt-get install -y git maven openjdk-8-jdk-headless awscli ruby wget python-setuptools
+            - |
+              mkdir aws-cfn-bootstrap-latest
+            - >
+              curl
+              https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+              | tar xz -C aws-cfn-bootstrap-latest --strip-components 1
+            - |
+              easy_install aws-cfn-bootstrap-latest
+            - |
+              wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
+            - |
+              chmod +x install; ./install auto
+            - |
+              service codedeploy-agent start
+            - |
+              # Helper function.
+            - |
+              function error_exit
+            - |
+              {
+            - '  /usr/local/bin/cfn-signal -e 1 -r "$1" '''
+            - !Ref WaitHandle
+            - |
+              '
+            - |2
+                exit 1
+            - |
+              }
+            - >-
+              git clone 'https://github.com/
+            - !Ref GitHubRepo
+            - |
+              ' || error_exit "Failed to clone repo"
+            - >
+              cd opstest; ./run.sh || error_exit "Failed to run run.sh"
+            - >-
+              /usr/local/bin/cfn-signal -e 0 -r "AWS CodeDeploy Agent setup
+              complete." '
+            - !Ref WaitHandle
+            - |
+              '
+  TestAppAutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AutoScalingGroupName: !Ref 'AWS::StackName'
+      LaunchConfigurationName: !Ref TestAppLaunchConfiguration
+      MaxSize: !Ref InstanceCount
+      MinSize: !Ref InstanceCount
+      DesiredCapacity: !Ref InstanceCount
+      VPCZoneIdentifier:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+      TargetGroupARNs:
+        - !Ref TestAppELBTG
+  TestAppELBTG:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: !Ref 'AWS::StackName'
+      HealthCheckPath: '/hello'
+      VpcId: !Ref VPC
+      Port: 8080
+      Protocol: HTTP
+  TestAppELB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Ref 'AWS::StackName'
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+      SecurityGroups:
+        - !Ref SecurityGroup
+  TestAppELBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TestAppELBTG
+      LoadBalancerArn: !Ref TestAppELB
+Outputs:
+  AutoScalingGroupName:
+    Value: !Ref TestAppAutoScalingGroup
+  ELBTargetGroupName:
+    Value: !GetAtt TestAppELBTG.TargetGroupName
+  ELBURL:
+    Value: !Join [ '', [ 'http://', !GetAtt TestAppELB.DNSName, '/hello'] ]
