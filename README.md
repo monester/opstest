@@ -29,6 +29,8 @@ Save AWS credentials you get from playbook to setup github integration and deplo
 
 ## GitHub Trigger
 
+Detailed description can be found here: https://aws.amazon.com/blogs/devops/automatically-deploy-from-github-using-aws-codedeploy/
+
 ### Add  AWS CodeDeploy integration on GitHub with following parameters
 
 ```
