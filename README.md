@@ -55,3 +55,8 @@ Generate new token with  repo deployment scope
 GitHub token: (your new github access token)
 Environments: Development
 ```
+
+# Caveats
+
+- CodeDeploy can't queue deployments, so if you push new changes before previous deployment has finished newest update will not be deployed.
+- All installation is done in run.sh and don't use separate steps from AppSpec file to make it possible to deploy application without CodeDeploy - i.e. if someone kill instance it will be recreated and ready to serve.
