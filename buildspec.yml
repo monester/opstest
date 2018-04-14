@@ -5,3 +5,10 @@ phases:
     commands:
       - mvn compile
       - mvn package
+artifacts:
+  files:
+    - target/suchapp-0.0.1-SNAPSHOT.jar
+  discard-paths: yes
+cache:
+  paths:
+    - '/root/.m2/**/*'
