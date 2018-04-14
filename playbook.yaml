@@ -27,7 +27,7 @@
         template: "files/app.yaml"
         template_parameters:
           KeyPairName: "{{ ssh_key_name }}"
-          InstanceCount: 3
+          InstanceCount: 1
       register: stack
 
     - debug:
