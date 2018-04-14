@@ -1,5 +1,12 @@
 version: 0.0
 os: linux
+files:
+  - source: *.jar
+    destination: /var/www/
+  - source: test_app.service
+    destination: /etc/systemd/system/
 hooks:
+  ApplicationStop:
+    - location: stop.sh
   ApplicationStart:
-    - location: run.sh
+    - location: start.sh
