@@ -6,12 +6,12 @@ phases:
       - mvn install
 artifacts:
   files:
+    - files/*
     - target/suchapp-0.0.1-SNAPSHOT.jar
     - appspec.yml
     - start.sh
     - stop.sh
     - test_app.service
-  discard-paths: yes
 cache:
   paths:
     - '/root/.m2/**/*'

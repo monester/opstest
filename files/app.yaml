@@ -1,14 +1,22 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
-  GitHubRepo:
+  ApplicationName:
     Type: String
-    Default: monester/opstest
+
+  EnvironmentName:
+    Type: String
+
   KeyPairName:
     Type: String
     Default: 'my_key'
+
   InstanceCount:
     Type: Number
     Default: '1'
+
+  ArtifactS3Bucket:
+    Type: String
+
 Mappings:
   RegionOS2AMI:
     eu-west-1:
@@ -22,9 +30,12 @@ Resources:
       Count: !Ref InstanceCount
       Handle: !Ref WaitHandle
       Timeout: '1800'
+
   InstanceRole:
     Type: 'AWS::IAM::Role'
     Properties:
+      Path: /
+      RoleName: !Sub ${ApplicationName}-${EnvironmentName}-${AWS::Region}
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -33,28 +44,13 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-      Path: /
-  InstanceRolePolicies:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyName: InstanceRole
-      PolicyDocument:
+      Policies:
         Statement:
           - Effect: Allow
-            Action:
-              - 'autoscaling:Describe*'
-              - 'cloudformation:Describe*'
-              - 'cloudformation:GetTemplate'
-              - 's3:Get*'
-            Resource: '*'
-      Roles:
-        - !Ref InstanceRole
-  InstanceRoleInstanceProfile:
-    Type: 'AWS::IAM::InstanceProfile'
-    Properties:
-      Path: /
-      Roles:
-        - !Ref InstanceRole
+            Action: 's3:Get*'
+            Resource: !Sub 'arn:aws:s3:::${ArtifactS3Bucket}/${ApplicationName}/*'
+
+  # VPC and networking
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
@@ -64,13 +60,14 @@ Resources:
       InstanceTenancy: default
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
+
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
   AttachGateway:
     Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:
@@ -81,38 +78,39 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 172.31.0.0/24
-      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'a' ] ]
+      AvailabilityZone: !Sub "${AWS::Region}a"
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
   PublicSubnetB:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 172.31.1.0/24
-      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'b' ] ]
+      AvailabilityZone: !Sub "${AWS::Region}b"
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
   PublicSubnetC:
     Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 172.31.2.0/24
-      AvailabilityZone: !Join [ '', [ !Ref 'AWS::Region', 'c' ] ]
+      AvailabilityZone: !Sub "${AWS::Region}c"
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
   PublicRouteTable:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Ref 'AWS::StackName'
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
+
   PublicRoute:
     Type: 'AWS::EC2::Route'
     Properties:
@@ -134,26 +132,40 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetC
-  SecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+
+  # ELB configuration
+  ELBTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
-      GroupName: !Ref 'AWS::StackName'
-      GroupDescription: 'Open tcp/22 tcp/80 to world. Open tcp/8080 to ELB.'
+      Name: !Ref ApplicationName
+      HealthCheckPath: '/hello'
       VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8080'
-          ToPort: '8080'
-          CidrIp: '172.31.0.0/16'
-        - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIp: 0.0.0.0/0
-  TestAppLaunchConfiguration:
+      Port: 8080
+      Protocol: HTTP
+
+  ELBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ELBTargetGroup
+      LoadBalancerArn: !Ref ELB
+
+  ELB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Ref ApplicationName
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+      SecurityGroups:
+        - !Ref SecurityGroup
+
+  # AutoScaling configuration
+  LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
       IamInstanceProfile: !Ref InstanceRoleInstanceProfile
@@ -184,11 +196,13 @@ Resources:
             EOF
 
             /usr/local/bin/cfn-signal -e 0 -r "AWS CodeDeploy Agent setup complete."  "${WaitHandle}"
-  TestAppAutoScalingGroup:
+
+
+  AutoScalingGroup:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
-      AutoScalingGroupName: !Ref 'AWS::StackName'
-      LaunchConfigurationName: !Ref TestAppLaunchConfiguration
+      AutoScalingGroupName: !Ref ApplicationName
+      LaunchConfigurationName: !Ref LaunchConfiguration
       MaxSize: !Ref InstanceCount
       MinSize: !Ref InstanceCount
       DesiredCapacity: !Ref InstanceCount
@@ -197,38 +211,49 @@ Resources:
         - !Ref PublicSubnetB
         - !Ref PublicSubnetC
       TargetGroupARNs:
-        - !Ref TestAppELBTG
-  TestAppELBTG:
-    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+        - !Ref ELBTargetGroup
+
+  # Deployment group
+  CodeDeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
-      Name: !Ref 'AWS::StackName'
-      HealthCheckPath: '/hello'
+      DeploymentGroupName: !Ref EnvironmentName
+      DeploymentConfigName: CodeDeployDefault.OneAtATime
+      ServiceRoleArn: 
+        Fn::ImportValue:
+          !Sub CodeDeployRole-${ApplicationName}
+      ApplicationName: 
+        Fn::ImportValue:
+          !Sub CodeDeployApplication-${ApplicationName} 
+      AutoScalingGroups:
+        - !Ref AutoScalingGroup
+
+  # Security Groups
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
       VpcId: !Ref VPC
-      Port: 8080
-      Protocol: HTTP
-  TestAppELB:
-    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
-    Properties:
-      Name: !Ref 'AWS::StackName'
-      Subnets:
-        - !Ref PublicSubnetA
-        - !Ref PublicSubnetB
-        - !Ref PublicSubnetC
-      SecurityGroups:
-        - !Ref SecurityGroup
-  TestAppELBListener:
-    Type: 'AWS::ElasticLoadBalancingV2::Listener'
-    Properties:
-      Protocol: HTTP
-      Port: 80
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref TestAppELBTG
-      LoadBalancerArn: !Ref TestAppELB
+      GroupDescription: Allow access to instances only from ELB
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: !Ref ELBSecurityGroup 
+          IpProtocol: -1
+      Tags: 
+        - Key: Name
+          Value: !Sub ${ApplicationName}-${EnvironmentName}
+
+  ELBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties: 
+          VpcId: !Ref VPC
+          GroupDescription: Open ELB
+          SecurityGroupIngress:
+              - CidrIp: 0.0.0.0/0
+                IpProtocol: -1
+          Tags: 
+              - Key: Name
+                Value: !Sub ${ApplicationName}-${EnvironmentName}-ELB
+
+
 Outputs:
-  AutoScalingGroupName:
-    Value: !Ref TestAppAutoScalingGroup
-  ELBTargetGroupName:
-    Value: !GetAtt TestAppELBTG.TargetGroupName
-  ELBURL:
-    Value: !Join [ '', [ 'http://', !GetAtt TestAppELB.DNSName, '/hello'] ]
+  URL:
+    Value: !Sub http://${TestAppELB.DNSName}

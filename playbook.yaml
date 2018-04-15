@@ -11,41 +11,46 @@
       DR3vdLZ49D6Phc/U3RFJO4ookV4UwJZ6mPHIbEz1Go3Mlu/+hiG8Cn4ZRk6Uv3Pcc2qmlg0Lo
       /lUdlkgOc9MVEl9 m@debi
   tasks:
-    - name: create ssh key
-      ec2_key:
-        name: "{{ ssh_key_name }}"
-        key_material: "{{ ssh_key_value }}"
-        force: true
-        state: present
-        region: "{{ aws_region }}"
+    # - name: create ssh key
+    #   ec2_key:
+    #     name: "{{ ssh_key_name }}"
+    #     key_material: "{{ ssh_key_value }}"
+    #     force: true
+    #     state: present
+    #     region: "{{ aws_region }}"
 
-    - name: create a cloudformation stack for app
-      cloudformation:
-        stack_name: "{{app_name}}"
-        state: "present"
-        region: "{{ aws_region }}"
-        template: "files/app.yaml"
-        template_parameters:
-          KeyPairName: "{{ ssh_key_name }}"
-          InstanceCount: 2
-      register: stack
+    # - name: create a cloudformation stack for app
+    #   cloudformation:
+    #     stack_name: "{{app_name}}"
+    #     state: "present"
+    #     region: "{{ aws_region }}"
+    #     template: "files/app.yaml"
+    #     template_parameters:
+    #       KeyPairName: "{{ ssh_key_name }}"
+    #       InstanceCount: 2
+    #   register: stack
 
-    - debug:
-        var: stack.stack_outputs.ELBURL
+    # - debug:
+    #     var: stack.stack_outputs.ELBURL
 
-    - name: create code deploy configuration
-      cloudformation:
-        stack_name: "{{app_name}}CodeDeploy"
-        state: "present"
-        region: "{{ aws_region }}"
-        template: "files/codedeploy.yaml"
-        template_parameters:
-          ApplicationName: "{{ app_name }}"
-          AutoScalingGroupName: "{{ stack.stack_outputs.AutoScalingGroupName}}"
-          ELBTargetGroupName: "{{ stack.stack_outputs.ELBTargetGroupName}}"
-      register: codedeploy
+    # - name: create code deploy configuration
+    #   cloudformation:
+    #     stack_name: "{{app_name}}CodeDeploy"
+    #     state: "present"
+    #     region: "{{ aws_region }}"
+    #     template: "files/codedeploy.yaml"
+    #     template_parameters:
+    #       ApplicationName: "{{ app_name }}"
+    #       AutoScalingGroupName: "{{ stack.stack_outputs.AutoScalingGroupName}}"
+    #       ELBTargetGroupName: "{{ stack.stack_outputs.ELBTargetGroupName}}"
+    #   register: codedeploy
 
-    - name: create code pipeline
+    # - name: DELETE code pipeline
+    #   cloudformation:
+    #     stack_name: "{{app_name}}Pipeline"
+    #     state: "absent"
+
+    - name: CREATE code pipeline
       cloudformation:
         stack_name: "{{app_name}}Pipeline"
         state: "present"
@@ -53,7 +58,10 @@
         template: "files/codepipeline.yaml"
         template_parameters:
           ApplicationName: "{{ app_name }}"
-          ArtifactS3Bucket: "codepipeline-eu-west-1-744704755096"
+          GitHubOwner: monester
+          GitHubRepo: opstest
+          GitHubBranch: master
+          GitHubToken: "{{ lookup('env','GITHUB_TOKEN') }}"
 
     - debug:
         var: codedeploy.stack_outputs
