@@ -53,14 +53,14 @@ Resources:
             - Name: CodeBuild
               InputArtifacts:
                 - Name: Source
-              ActionTypeId: 
+              ActionTypeId:
                 Category: Build
                 Owner: AWS
                 Version: 1
                 Provider: CodeBuild
               OutputArtifacts:
                 - Name: Built
-              Configuration: 
+              Configuration:
                 ProjectName: !Ref CodeBuild
 
         - Name: Staging
@@ -86,17 +86,17 @@ Resources:
                     "EnvironmentName": "Staging",
                     "ArtifactS3Bucket": "${ArtifactS3Bucket}"
                   }
-                  
+
             - Name: DeployApplication
               RunOrder: 2
-              InputArtifacts: 
+              InputArtifacts:
                 - Name: Built
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
                 Version: 1
                 Provider: CodeDeploy
-              Configuration: 
+              Configuration:
                 ApplicationName: !Ref ApplicationName
                 DeploymentGroupName: Staging
 
@@ -129,7 +129,7 @@ Resources:
   # IAM Roles
   CodeBuildRole:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       Path: /
       RoleName: !Sub ${ApplicationName}-CodeBuild-${AWS::Region}
       AssumeRolePolicyDocument:
@@ -137,8 +137,8 @@ Resources:
           - Action: "sts:AssumeRole"
             Effect: Allow
             Principal:
-              Service: "codebuild.amazonaws.com" 
-      Policies: 
+              Service: "codebuild.amazonaws.com"
+      Policies:
         - PolicyName: !Sub ${ApplicationName}-CodeBuild-${AWS::Region}
           PolicyDocument:
             Statement:
@@ -173,7 +173,7 @@ Resources:
 
   CodePipelineRole:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       Path: /
       RoleName: !Sub ${ApplicationName}-CodePipeline-${AWS::Region}
       AssumeRolePolicyDocument:
@@ -228,7 +228,7 @@ Resources:
 
   CodePipelineCloudFormationRole:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       Path: /
       RoleName: !Sub ${ApplicationName}-CloudFormation-${AWS::Region}
       AssumeRolePolicyDocument:
@@ -260,7 +260,7 @@ Resources:
                   - "iam:DeleteRolePolicy"
 
                   - "iam:CreateInstanceProfile"
-                  - "iam:DeleteInstanceProfile"                  
+                  - "iam:DeleteInstanceProfile"
 
                   - "iam:AddRoleToInstanceProfile"
                   - "iam:RemoveRoleFromInstanceProfile"

@@ -10,52 +10,25 @@
       7GCoKPZx90vA27z6CrGSfoe6EVqDmK1AcqCBLN6huyirI4jAZxS8kbTZ+6LyzEzA8Xx6fklIl
       DR3vdLZ49D6Phc/U3RFJO4ookV4UwJZ6mPHIbEz1Go3Mlu/+hiG8Cn4ZRk6Uv3Pcc2qmlg0Lo
       /lUdlkgOc9MVEl9 m@debi
+    github_repo_owner: monester
+    github_repo_name: opstest
+    github_repo_branch: master
+    github_token: "{{ lookup('env','GITHUB_TOKEN') }}"
   tasks:
-    # - name: create ssh key
-    #   ec2_key:
-    #     name: "{{ ssh_key_name }}"
-    #     key_material: "{{ ssh_key_value }}"
-    #     force: true
-    #     state: present
-    #     region: "{{ aws_region }}"
+    - name: create ssh key
+      ec2_key:
+        name: "{{ ssh_key_name }}"
+        key_material: "{{ ssh_key_value }}"
+        force: true
+        state: present
+        region: "{{ aws_region }}"
 
-    # - name: create a cloudformation stack for app
-    #   cloudformation:
-    #     stack_name: "{{app_name}}"
-    #     state: "present"
-    #     region: "{{ aws_region }}"
-    #     template: "files/app.yaml"
-    #     template_parameters:
-    #       KeyPairName: "{{ ssh_key_name }}"
-    #       InstanceCount: 2
-    #   register: stack
+    - name: create articact storage
+      s3_bucket:
+        name: test-app-artifacts
+        region: "{{ aws_region }}"
 
-    # - debug:
-    #     var: stack.stack_outputs.ELBURL
-
-    # - name: create code deploy configuration
-    #   cloudformation:
-    #     stack_name: "{{app_name}}CodeDeploy"
-    #     state: "present"
-    #     region: "{{ aws_region }}"
-    #     template: "files/codedeploy.yaml"
-    #     template_parameters:
-    #       ApplicationName: "{{ app_name }}"
-    #       AutoScalingGroupName: "{{ stack.stack_outputs.AutoScalingGroupName}}"
-    #       ELBTargetGroupName: "{{ stack.stack_outputs.ELBTargetGroupName}}"
-    #   register: codedeploy
-
-    # - name: DELETE code pipeline
-    #   cloudformation:
-    #     stack_name: "{{app_name}}Pipeline"
-    #     state: "absent"
-
-    # - name: create s3 bucket
-    #   s3_bucket:
-    #     name: test-app-artifacts
-    #     region: "{{ aws_region }}"
-
-    - name: CREATE code pipeline
+    - name: Application code pipeline
       cloudformation:
         stack_name: "{{app_name}}Pipeline"
         state: "present"
@@ -64,10 +37,7 @@
         template_parameters:
           ApplicationName: "{{ app_name }}"
           ArtifactS3Bucket: "test-app-artifacts"
-          GitHubOwner: monester
-          GitHubRepo: opstest
-          GitHubBranch: master
-          GitHubToken: "{{ lookup('env','GITHUB_TOKEN') }}"
-
-    - debug:
-        var: codedeploy.stack_outputs
+          GitHubOwner: "{{ github_repo_owner }}"
+          GitHubRepo: "{{ github_repo_name }}"
+          GitHubBranch: "{{ github_repo_branch }}"
+          GitHubToken: "{{ github_token }}"

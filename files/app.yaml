@@ -51,11 +51,11 @@ Resources:
               - Effect: Allow
                 Action: 's3:Get*'
                 Resource: !Sub 'arn:aws:s3:::${ArtifactS3Bucket}/${ApplicationName}/*'
-  InstanceProfile: 
+  InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
-      Roles: 
+      Roles:
         - !Ref InstanceRole
 
 
@@ -228,10 +228,10 @@ Resources:
     Properties:
       DeploymentGroupName: !Ref EnvironmentName
       DeploymentConfigName: CodeDeployDefault.OneAtATime
-      ServiceRoleArn: 
+      ServiceRoleArn:
         Fn::ImportValue:
           !Sub CodeDeployRole-${ApplicationName}
-      ApplicationName: 
+      ApplicationName:
         Fn::ImportValue:
           !Sub CodeDeployApplication-${ApplicationName}
       AutoScalingGroups:
@@ -240,25 +240,25 @@ Resources:
   # Security Groups
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Properties: 
+    Properties:
       VpcId: !Ref VPC
       GroupDescription: Allow access to instances only from ELB
       SecurityGroupIngress:
-        - SourceSecurityGroupId: !Ref ELBSecurityGroup 
+        - SourceSecurityGroupId: !Ref ELBSecurityGroup
           IpProtocol: -1
-      Tags: 
+      Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${EnvironmentName}
 
   ELBSecurityGroup:
       Type: AWS::EC2::SecurityGroup
-      Properties: 
+      Properties:
           VpcId: !Ref VPC
           GroupDescription: Open ELB
           SecurityGroupIngress:
               - CidrIp: 0.0.0.0/0
                 IpProtocol: -1
-          Tags: 
+          Tags:
               - Key: Name
                 Value: !Sub ${ApplicationName}-${EnvironmentName}-ELB
 
