@@ -233,7 +233,7 @@ Resources:
           !Sub CodeDeployRole-${ApplicationName}
       ApplicationName: 
         Fn::ImportValue:
-          !Sub CodeDeployApplication-${ApplicationName} 
+          !Sub CodeDeployApplication-${ApplicationName}
       AutoScalingGroups:
         - !Ref AutoScalingGroup
 

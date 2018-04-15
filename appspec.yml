@@ -1,7 +1,7 @@
 version: 0.0
 os: linux
 files:
-  - source: suchapp-0.0.1-SNAPSHOT.jar
+  - source: target/suchapp-0.0.1-SNAPSHOT.jar
     destination: /var/www/
   - source: test_app.service
     destination: /etc/systemd/system/
