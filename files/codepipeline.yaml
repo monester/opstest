@@ -335,12 +335,12 @@ Resources:
                   - "iam:RemoveRoleFromInstanceProfile"
                   - "iam:PassRole"
                   - "iam:DeleteInstanceProfile"                  
-                Resource:
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}-staging-${AWS::Region}"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}-production-${AWS::Region}"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/gotest-staging-InstanceProfile-*"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/gotest-production-InstanceProfile-*"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}-CodeDeploy-${AWS::Region}"
+                Resource: "*"
+                  # - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}Staging-${AWS::Region}"
+                  # - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}Production-${AWS::Region}"
+                  # - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/gotest-staging-InstanceProfile-*"
+                  # - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/gotest-production-InstanceProfile-*"
+                  # - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationName}-CodeDeploy-${AWS::Region}"
 Outputs:
     CodeDeployApplication:
         Description: The CodeDeploy application used across all environments
