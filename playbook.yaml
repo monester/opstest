@@ -27,7 +27,7 @@
         template: "files/app.yaml"
         template_parameters:
           KeyPairName: "{{ ssh_key_name }}"
-          InstanceCount: 1
+          InstanceCount: 2
       register: stack
 
     - debug:
@@ -35,14 +35,25 @@
 
     - name: create code deploy configuration
       cloudformation:
-        stack_name: "{{app_name}}Pipeline"
+        stack_name: "{{app_name}}CodeDeploy"
         state: "present"
         region: "{{ aws_region }}"
         template: "files/codedeploy.yaml"
         template_parameters:
+          ApplicationName: "{{ app_name }}"
           AutoScalingGroupName: "{{ stack.stack_outputs.AutoScalingGroupName}}"
           ELBTargetGroupName: "{{ stack.stack_outputs.ELBTargetGroupName}}"
       register: codedeploy
+
+    - name: create code pipeline
+      cloudformation:
+        stack_name: "{{app_name}}Pipeline"
+        state: "present"
+        region: "{{ aws_region }}"
+        template: "files/codepipeline.yaml"
+        template_parameters:
+          ApplicationName: "{{ app_name }}"
+          ArtifactS3Bucket: "codepipeline-eu-west-1-744704755096"
 
     - debug:
         var: codedeploy.stack_outputs

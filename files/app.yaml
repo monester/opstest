@@ -166,55 +166,24 @@ Resources:
       SecurityGroups:
         - !Ref SecurityGroup
       UserData: !Base64
-        'Fn::Join':
-          - ''
-          - - |
-              #!/bin/bash -ex
-            - |
-              apt-get update
-            - |
-              apt-get install -y git maven openjdk-8-jdk-headless awscli ruby wget python-setuptools
-            - |
-              mkdir aws-cfn-bootstrap-latest
-            - >
-              curl
-              https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-              | tar xz -C aws-cfn-bootstrap-latest --strip-components 1
-            - |
-              easy_install aws-cfn-bootstrap-latest
-            - |
-              wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
-            - |
-              chmod +x install; ./install auto
-            - |
-              service codedeploy-agent start
-            - |
-              # Helper function.
-            - |
-              function error_exit
-            - |
-              {
-            - '  /usr/local/bin/cfn-signal -e 1 -r "$1" '''
-            - !Ref WaitHandle
-            - |
-              '
-            - |2
-                exit 1
-            - |
-              }
-            - >-
-              git clone 'https://github.com/
-            - !Ref GitHubRepo
-            - |
-              ' || error_exit "Failed to clone repo"
-            - >
-              cd opstest; ./run.sh || error_exit "Failed to run run.sh"
-            - >-
-              /usr/local/bin/cfn-signal -e 0 -r "AWS CodeDeploy Agent setup
-              complete." '
-            - !Ref WaitHandle
-            - |
-              '
+        'Fn::Sub': |
+            #!/bin/bash -ex
+            apt-get update
+            apt-get install -y git maven openjdk-8-jdk-headless awscli ruby wget python-setuptools
+
+            mkdir aws-cfn-bootstrap-latest
+            curl https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz | tar xz -C aws-cfn-bootstrap-latest --strip-components 1
+            easy_install aws-cfn-bootstrap-latest
+
+            wget https://aws-codedeploy-eu-west-1.s3.amazonaws.com/latest/install
+            chmod +x install; ./install auto
+            service codedeploy-agent start
+
+            cat > /tmp/application.properties <<EOF
+            suchname=$(curl http://169.254.169.254/latest/meta-data/placement/availability-zone)
+            EOF
+
+            /usr/local/bin/cfn-signal -e 0 -r "AWS CodeDeploy Agent setup complete."  "${WaitHandle}"
   TestAppAutoScalingGroup:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
