@@ -45,10 +45,12 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       Policies:
-        Statement:
-          - Effect: Allow
-            Action: 's3:Get*'
-            Resource: !Sub 'arn:aws:s3:::${ArtifactS3Bucket}/${ApplicationName}/*'
+        - PolicyName: !Sub ${ApplicationName}-Instance-${AWS::Region}
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: 's3:Get*'
+                Resource: !Sub 'arn:aws:s3:::${ArtifactS3Bucket}/${ApplicationName}/*'
   InstanceProfile: 
     Type: AWS::IAM::InstanceProfile
     Properties:

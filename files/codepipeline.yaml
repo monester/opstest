@@ -84,7 +84,7 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "ApplicationName": "${ApplicationName}",
-                    "Environment": "Staging",
+                    "EnvironmentName": "Staging",
                     "ArtifactS3Bucket": "${ArtifactS3Bucket}"
                   }
                   
