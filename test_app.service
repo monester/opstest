@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/var/www
-ExecStart=/usr/bin/java /var/www/suchapp-0.0.1-SNAPSHOT.jar -jar --spring.config.location=/tmp/application.properties
+ExecStart=/usr/bin/java -jar /var/www/suchapp-0.0.1-SNAPSHOT.jar --spring.config.location=/tmp/application.properties
 Restart=on-failure
 
 [Install]
