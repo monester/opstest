@@ -50,6 +50,11 @@
     #     stack_name: "{{app_name}}Pipeline"
     #     state: "absent"
 
+    # - name: create s3 bucket
+    #   s3_bucket:
+    #     name: test-app-artifacts
+    #     region: "{{ aws_region }}"
+
     - name: CREATE code pipeline
       cloudformation:
         stack_name: "{{app_name}}Pipeline"
@@ -58,6 +63,7 @@
         template: "files/codepipeline.yaml"
         template_parameters:
           ApplicationName: "{{ app_name }}"
+          ArtifactS3Bucket: "test-app-artifacts"
           GitHubOwner: monester
           GitHubRepo: opstest
           GitHubBranch: master

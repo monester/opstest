@@ -49,6 +49,13 @@ Resources:
           - Effect: Allow
             Action: 's3:Get*'
             Resource: !Sub 'arn:aws:s3:::${ArtifactS3Bucket}/${ApplicationName}/*'
+  InstanceProfile: 
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: 
+        - !Ref InstanceRole
+
 
   # VPC and networking
   VPC:
@@ -162,13 +169,13 @@ Resources:
         - !Ref PublicSubnetB
         - !Ref PublicSubnetC
       SecurityGroups:
-        - !Ref SecurityGroup
+        - !Ref ELBSecurityGroup
 
   # AutoScaling configuration
   LaunchConfiguration:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
-      IamInstanceProfile: !Ref InstanceRoleInstanceProfile
+      IamInstanceProfile: !Ref InstanceProfile
       ImageId: !FindInMap
         - RegionOS2AMI
         - !Ref 'AWS::Region'
@@ -176,7 +183,7 @@ Resources:
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       SecurityGroups:
-        - !Ref SecurityGroup
+        - !Ref InstanceSecurityGroup
       UserData: !Base64
         'Fn::Sub': |
             #!/bin/bash -ex
@@ -256,4 +263,4 @@ Resources:
 
 Outputs:
   URL:
-    Value: !Sub http://${TestAppELB.DNSName}
+    Value: !Sub http://${ELB.DNSName}
