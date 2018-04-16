@@ -10,9 +10,7 @@ It is done by AutoScaleGroup, CodeDeploy, CodePipeline and CodeBuild.
 
 ## GitHub token
 
-Navigate on https://github.com
-
-`Your profile -> Settings -> Developer settings -> Personal access tokens`
+Open https://github.com/settings/tokens
 
 Generate new token with 'repo:status' and 'public_repo' scope.
 
