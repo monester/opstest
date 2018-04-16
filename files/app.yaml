@@ -261,7 +261,6 @@ Resources:
               - Key: Name
                 Value: !Sub ${ApplicationName}-${EnvironmentName}-ELB
 
-
 Outputs:
   URL:
-    Value: !Sub http://${ELB.DNSName}
+    Value: !Sub http://${ELB.DNSName}/hello

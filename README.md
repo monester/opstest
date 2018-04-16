@@ -16,9 +16,11 @@ Navigate on https://github.com
 
 Generate new token with 'repo:status' and 'public_repo' scope.
 
-## CodePipeline in AWS
+## AWS configuration
 
 To use playbook AWS client should be configured by running `aws configure`.
+
+## Deploy CodePipeline
 
 To deploy application simply run
 
@@ -27,15 +29,15 @@ pip install -r requirements.txt
 GITHUB_TOKEN=TOKEN ansible-playbook playbook.yaml
 ```
 
-or
+or if you have tox installed
 
 ```
 GITHUB_TOKEN=TOKEN tox
 ```
 
-Playbook will install application in AWS EC2 in eu-west-1 region in 3 Availability Zones and create CodeDeploy configuration for manual run.
+Playbook will create CodePipeline stack and then CodePipeline will install application in AWS EC2 in eu-west-1 region in 3 Availability Zones.
 
-URL of applications Load Balancer can be found in CloudFormation output or in EC2-ELB.
+URL of applications can be found in CloudFormation output or in EC2-ELB.
 
 # Todo
 
