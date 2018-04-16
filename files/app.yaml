@@ -27,7 +27,6 @@ Resources:
   WaitCondition:
     Type: 'AWS::CloudFormation::WaitCondition'
     Properties:
-      Count: !Ref InstanceCount
       Handle: !Ref WaitHandle
       Timeout: '1800'
 

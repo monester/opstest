@@ -32,7 +32,7 @@ Resources:
         Location: !Ref ArtifactS3Bucket
       Stages:
 
-        - Name: Build
+        - Name: Source
           Actions:
             - Name: GitHub
               ActionTypeId:
@@ -47,6 +47,8 @@ Resources:
                 Repo: !Ref GitHubRepo
                 Branch: !Ref GitHubBranch
                 OAuthToken: !Ref GitHubToken
+
+        - Name: Build
           Actions:
             - Name: CodeBuild
               InputArtifacts:
