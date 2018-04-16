@@ -12,3 +12,6 @@ artifacts:
     - start.sh
     - stop.sh
     - test_app.service
+cache:
+  paths:
+    - '/root/.m2/**/*'

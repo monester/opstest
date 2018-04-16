@@ -113,12 +113,12 @@ Resources:
         ComputeType: BUILD_GENERAL1_SMALL
         Image:  aws/codebuild/java:openjdk-8
         Type: LINUX_CONTAINER
-        EnvironmentVariables:
-          - Name: ARTIFACT_S3_BUCKET
-            Value: !Ref ArtifactS3Bucket
       Artifacts:
         Name: !Ref ApplicationName
         Type: CODEPIPELINE
+      Cache:
+        Location: !Sub ${ArtifactS3Bucket}/cache
+        Type: S3
 
   # Deploy stage
   CodeDeployApplication:
@@ -244,6 +244,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "ec2:*"
+                  - "elasticloadbalancing:*"
                   - "elasticloadbalancingv2:*"
                   - "autoscaling:*"
                   - "codedeploy:*"
