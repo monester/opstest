@@ -12,7 +12,7 @@ Parameters:
 
   InstanceCount:
     Type: Number
-    Default: '1'
+    Default: '3'
 
   ArtifactS3Bucket:
     Type: String
