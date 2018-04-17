@@ -12,7 +12,7 @@ Parameters:
 
   InstanceCount:
     Type: Number
-    Default: '3'
+    Default: '1'
 
   ArtifactS3Bucket:
     Type: String
@@ -87,7 +87,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 172.31.0.0/24
       AvailabilityZone: !Sub "${AWS::Region}a"
-      MapPublicIpOnLaunch: 'true'
+      # MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${EnvironmentName}
@@ -97,7 +97,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 172.31.1.0/24
       AvailabilityZone: !Sub "${AWS::Region}b"
-      MapPublicIpOnLaunch: 'true'
+      # MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${EnvironmentName}
@@ -107,7 +107,7 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 172.31.2.0/24
       AvailabilityZone: !Sub "${AWS::Region}c"
-      MapPublicIpOnLaunch: 'true'
+      # MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
           Value: !Sub ${ApplicationName}-${EnvironmentName}

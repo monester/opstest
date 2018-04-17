@@ -84,7 +84,8 @@ Resources:
                   {
                     "ApplicationName": "${ApplicationName}",
                     "EnvironmentName": "Staging",
-                    "ArtifactS3Bucket": "${ArtifactS3Bucket}"
+                    "ArtifactS3Bucket": "${ArtifactS3Bucket}",
+                    "InstanceCount": "1"
                   }
 
             - Name: DeployApplication

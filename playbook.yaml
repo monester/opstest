@@ -12,7 +12,7 @@
       /lUdlkgOc9MVEl9 m@debi
     github_repo_owner: monester
     github_repo_name: opstest
-    github_repo_branch: master
+    github_repo_branch: enchance_vpc_security
     github_token: "{{ lookup('env','GITHUB_TOKEN') }}"
   tasks:
     - name: create ssh key
